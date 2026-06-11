@@ -36,7 +36,7 @@ export class LifePolicyFactory implements PolicyFactoryPort {
   }
 
   getBasePremium(): number {
-    return 250000;
+    return 90000; // Updated to match checklist: 90k
   }
 
   getDefaultDurationMonths(): number {
@@ -58,7 +58,7 @@ export class HomePolicyFactory implements PolicyFactoryPort {
   }
 
   getBasePremium(): number {
-    return 180000;
+    return 75000; // Updated to match checklist: 75k
   }
 
   getDefaultDurationMonths(): number {
@@ -74,7 +74,8 @@ export class HealthPolicyFactory implements PolicyFactoryPort {
   createDefaultCoverage() {
     return {
       coverageAmount: 100000000,
-      deductible: 500000,
+      copayRate: 0.20,       // Updated to match checklist
+      waitingPeriodDays: 30, // Updated to match checklist
       description: 'Comprehensive Health Coverage'
     };
   }

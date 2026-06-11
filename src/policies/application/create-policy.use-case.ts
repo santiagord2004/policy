@@ -57,11 +57,17 @@ export class CreatePolicyUseCase {
     const coverage = factory.createDefaultCoverage();
     const durationMonths = factory.getDefaultDurationMonths();
 
-    // Prepare risk profile merging database details
+    // Prepare risk profile merging database details to support both keys (score/riskScore, yearsAsCustomer/customerSince)
     const inputRiskProfile = dto.riskProfile || {};
     const finalRiskProfile = {
       ...inputRiskProfile,
       yearsAsCustomer: customer.getYearsAsCustomer(),
+      customerSince: inputRiskProfile.customerSince !== undefined 
+        ? inputRiskProfile.customerSince 
+        : (inputRiskProfile.yearsAsCustomer !== undefined 
+            ? inputRiskProfile.yearsAsCustomer 
+            : customer.getYearsAsCustomer()),
+      riskScore: inputRiskProfile.riskScore !== undefined ? inputRiskProfile.riskScore : inputRiskProfile.score
     };
 
     // 5. Validate and calculate premium using Strategy pattern
