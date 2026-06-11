@@ -1,0 +1,256 @@
+### ==========================================
+### RETO INTEGRADOR — INSURANCE API REQUESTS
+### ==========================================
+
+@baseUrl = http://localhost:3000/api
+
+
+### ------------------------------------------
+### 👥 CREACIÓN DE CLIENTES (CUSTOMERS)
+### ------------------------------------------
+
+# @name createCustomerStandard
+POST {{baseUrl}}/customers
+Content-Type: application/json
+
+{
+  "name": "Juan Perez",
+  "email": "juan.perez@example.com",
+  "yearsAsCustomer": 0
+}
+
+###
+
+# @name createCustomerLoyal
+POST {{baseUrl}}/customers
+Content-Type: application/json
+
+{
+  "name": "Ana Gomez",
+  "email": "ana.gomez@example.com",
+  "yearsAsCustomer": 5
+}
+
+###
+
+# @name getCustomer
+GET {{baseUrl}}/customers/{{createCustomerStandard.response.body.id}}
+
+
+### ------------------------------------------
+### 📝 CREACIÓN DE COTIZACIONES DE SEGUROS
+### ------------------------------------------
+
+### 1. Póliza AUTO con Estrategia STANDARD (Cliente Standard)
+# Ramo AUTO: Prima base 120,000, 80M cobertura, 1M deducible.
+# @name createAutoStandardPolicy
+POST {{baseUrl}}/policies
+Content-Type: application/json
+
+{
+  "customerId": "{{createCustomerStandard.response.body.id}}",
+  "branch": "AUTO",
+  "ratingStrategy": "STANDARD"
+}
+
+###
+
+### 2. Póliza LIFE con Estrategia STANDARD (Cliente Standard)
+# Ramo LIFE: Prima base 250,000, 150M cobertura, sin deducible.
+# @name createLifeStandardPolicy
+POST {{baseUrl}}/policies
+Content-Type: application/json
+
+{
+  "customerId": "{{createCustomerStandard.response.body.id}}",
+  "branch": "LIFE",
+  "ratingStrategy": "STANDARD"
+}
+
+###
+
+### 3. Póliza HOME con Estrategia RISK_BASED (Cliente Standard - Score: 45)
+# Ramo HOME: Prima base 180,000.
+# Prima calculada: 180k * (1 + 45/100) = 261,000.
+# @name createHomeRiskPolicy
+POST {{baseUrl}}/policies
+Content-Type: application/json
+
+{
+  "customerId": "{{createCustomerStandard.response.body.id}}",
+  "branch": "HOME",
+  "ratingStrategy": "RISK_BASED",
+  "riskProfile": {
+    "score": 45
+  }
+}
+
+###
+
+### 4. Póliza HEALTH con Estrategia LOYALTY (Cliente Loyal - 5 años de antigüedad)
+# Ramo HEALTH: Prima base 150,000.
+# Prima calculada (15% desc.): 150k * 0.85 = 127,500.
+# @name createHealthLoyalPolicy
+POST {{baseUrl}}/policies
+Content-Type: application/json
+
+{
+  "customerId": "{{createCustomerLoyal.response.body.id}}",
+  "branch": "HEALTH",
+  "ratingStrategy": "LOYALTY"
+}
+
+
+### ------------------------------------------
+### 🔍 CONSULTAS DE PÓLIZAS
+### ------------------------------------------
+
+### Obtener detalles por ID (Debe retornar estado QUOTED inicial)
+GET {{baseUrl}}/policies/{{createAutoStandardPolicy.response.body.id}}
+
+###
+
+### Obtener todas las pólizas asociadas a un cliente
+GET {{baseUrl}}/policies/customer/{{createCustomerStandard.response.body.id}}
+
+
+### ------------------------------------------
+### 🔄 CICLO DE VIDA DE LA MÁQUINA DE ESTADOS (STATE)
+### ------------------------------------------
+
+# Guardamos el ID de la póliza de Auto creada para transicionar
+@policyId = {{createAutoStandardPolicy.response.body.id}}
+
+### Transition 1: QUOTED -> ISSUED (Feliz)
+# Publicará el evento: policy.issued
+PATCH {{baseUrl}}/policies/{{policyId}}/status
+Content-Type: application/json
+
+{
+  "targetStatus": "ISSUED"
+}
+
+###
+
+### Transition 2: ISSUED -> ACTIVE (Feliz)
+# Publicará el evento: policy.activated
+PATCH {{baseUrl}}/policies/{{policyId}}/status
+Content-Type: application/json
+
+{
+  "targetStatus": "ACTIVE"
+}
+
+###
+
+### Transition 3: ACTIVE -> SUSPENDED (Feliz)
+# Publicará el evento: policy.suspended
+PATCH {{baseUrl}}/policies/{{policyId}}/status
+Content-Type: application/json
+
+{
+  "targetStatus": "SUSPENDED"
+}
+
+###
+
+### Transition 4: SUSPENDED -> ACTIVE (Feliz)
+# Publicará el evento: policy.activated
+PATCH {{baseUrl}}/policies/{{policyId}}/status
+Content-Type: application/json
+
+{
+  "targetStatus": "ACTIVE"
+}
+
+###
+
+### Transition 5: ACTIVE -> CANCELLED (Feliz)
+# Publicará el evento: policy.cancelled
+PATCH {{baseUrl}}/policies/{{policyId}}/status
+Content-Type: application/json
+
+{
+  "targetStatus": "CANCELLED"
+}
+
+###
+
+### Transition 6: Idempotencia (CANCELLED -> CANCELLED)
+# No genera cambios, no emite eventos de cambio de estado repetidos.
+PATCH {{baseUrl}}/policies/{{policyId}}/status
+Content-Type: application/json
+
+{
+  "targetStatus": "CANCELLED"
+}
+
+
+### ------------------------------------------
+### ❌ ESCENARIOS DE ERROR
+### ------------------------------------------
+
+### Error 1: Transición inválida de la máquina de estados
+# CANCELLED es un estado terminal. Intentamos transicionar CANCELLED -> ACTIVE.
+# Debe retornar error 400 Bad Request: "Cannot transition policy from state 'CANCELLED' to state 'ACTIVE'."
+PATCH {{baseUrl}}/policies/{{policyId}}/status
+Content-Type: application/json
+
+{
+  "targetStatus": "ACTIVE"
+}
+
+###
+
+### Error 2: Transición inválida (QUOTED -> ACTIVE directamente)
+# Creamos una cotización nueva de prueba
+# @name tempPolicy
+POST {{baseUrl}}/policies
+Content-Type: application/json
+
+{
+  "customerId": "{{createCustomerStandard.response.body.id}}",
+  "branch": "LIFE",
+  "ratingStrategy": "STANDARD"
+}
+
+###
+# Intentamos pasar de QUOTED a ACTIVE directamente (debe fallar ya que debe pasar por ISSUED primero)
+# Debe retornar error 400 Bad Request: "Cannot transition policy from state 'QUOTED' to state 'ACTIVE'."
+PATCH {{baseUrl}}/policies/{{tempPolicy.response.body.id}}/status
+Content-Type: application/json
+
+{
+  "targetStatus": "ACTIVE"
+}
+
+###
+
+### Error 3: Validación de Estrategia LOYALTY fallida (Cliente no cumple antigüedad)
+# Juan Perez tiene 0 años de antigüedad (requiere antigüedad >= 2).
+# Debe retornar error 400 Bad Request: "LoyaltyStrategy requires customer seniority of at least 2 years. Provided: 0"
+POST {{baseUrl}}/policies
+Content-Type: application/json
+
+{
+  "customerId": "{{createCustomerStandard.response.body.id}}",
+  "branch": "HEALTH",
+  "ratingStrategy": "LOYALTY"
+}
+
+###
+
+### Error 4: Validación de Estrategia RISK_BASED fallida (Score fuera de rango)
+# Score = 150 (rango admitido [0, 100])
+# Debe retornar error 400 Bad Request: "Risk score must be between 0 and 100. Provided score: 150"
+POST {{baseUrl}}/policies
+Content-Type: application/json
+
+{
+  "customerId": "{{createCustomerStandard.response.body.id}}",
+  "branch": "HOME",
+  "ratingStrategy": "RISK_BASED",
+  "riskProfile": {
+    "score": 150
+  }
+}
