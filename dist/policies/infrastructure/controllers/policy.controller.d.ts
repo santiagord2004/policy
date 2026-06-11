@@ -1,0 +1,70 @@
+import { CreatePolicyUseCase } from '../../application/create-policy.use-case';
+import { GetPolicyUseCase } from '../../application/get-policy.use-case';
+import { GetCustomerPoliciesUseCase } from '../../application/get-customer-policies.use-case';
+import { TransitionPolicyStateUseCase } from '../../application/transition-policy-state.use-case';
+import { CreatePolicyDto } from './dto/create-policy.dto';
+import { UpdatePolicyStatusDto } from './dto/update-policy-status.dto';
+export declare class PolicyController {
+    private readonly createPolicyUseCase;
+    private readonly getPolicyUseCase;
+    private readonly getCustomerPoliciesUseCase;
+    private readonly transitionPolicyStateUseCase;
+    constructor(createPolicyUseCase: CreatePolicyUseCase, getPolicyUseCase: GetPolicyUseCase, getCustomerPoliciesUseCase: GetCustomerPoliciesUseCase, transitionPolicyStateUseCase: TransitionPolicyStateUseCase);
+    create(createPolicyDto: CreatePolicyDto): Promise<{
+        id: string;
+        policyNumber: string;
+        customerId: string;
+        branch: string;
+        coverage: any;
+        basePremium: number;
+        monthlyPremium: number;
+        status: string;
+        riskProfile: any;
+        durationMonths: number;
+        createdAt: Date;
+        updatedAt: Date;
+    }>;
+    getById(id: string): Promise<{
+        id: string;
+        policyNumber: string;
+        customerId: string;
+        branch: string;
+        coverage: any;
+        basePremium: number;
+        monthlyPremium: number;
+        status: string;
+        riskProfile: any;
+        durationMonths: number;
+        createdAt: Date;
+        updatedAt: Date;
+    }>;
+    getByCustomer(customerId: string): Promise<{
+        id: string;
+        policyNumber: string;
+        customerId: string;
+        branch: string;
+        coverage: any;
+        basePremium: number;
+        monthlyPremium: number;
+        status: string;
+        riskProfile: any;
+        durationMonths: number;
+        createdAt: Date;
+        updatedAt: Date;
+    }[]>;
+    changeStatus(id: string, updateStatusDto: UpdatePolicyStatusDto): Promise<{
+        id: string;
+        policyNumber: string;
+        customerId: string;
+        branch: string;
+        coverage: any;
+        basePremium: number;
+        monthlyPremium: number;
+        status: string;
+        riskProfile: any;
+        durationMonths: number;
+        createdAt: Date;
+        updatedAt: Date;
+    }>;
+    private mapResponse;
+}

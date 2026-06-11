@@ -1,0 +1,2 @@
+Notifications module application layer placeholder.
+This module does not contain application use cases since notification actions are handled asynchronously inside the infrastructure consumers.

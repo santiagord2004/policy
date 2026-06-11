@@ -1,0 +1,2 @@
+Notifications module domain layer placeholder.
+This module does not define core business entities or ports as it only contains infrastructure-driven consumers (Observers) for event notifications.
